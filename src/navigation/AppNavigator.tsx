@@ -98,7 +98,7 @@ function CompletionWrapper({ navigation }: NativeStackScreenProps<RootStackParam
 
 export default function AppNavigator() {
     const { userProfile, loadData, isLoading } = useAppStore();
-    const [initialRoute, setInitialRoute] = useState<'Onboarding' | 'Main'>('Onboarding');
+    const initialRoute = userProfile?.onboardingComplete ? 'Main' : 'Onboarding';
 
     useEffect(() => {
         const init = async () => {
@@ -106,14 +106,6 @@ export default function AppNavigator() {
         };
         init();
     }, []);
-
-    useEffect(() => {
-        if (!isLoading) {
-            setInitialRoute(
-                userProfile?.onboardingComplete ? 'Main' : 'Onboarding'
-            );
-        }
-    }, [userProfile, isLoading]);
 
     if (isLoading) {
         return <LoadingScreen />;

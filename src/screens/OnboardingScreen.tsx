@@ -19,6 +19,7 @@ import { colors } from '../theme/colors';
 import { fonts, spacing } from '../theme/fonts';
 import LanguageModal from '../components/LanguageModal';
 import ScreenBackground from '../components/ScreenBackground';
+import SetReminderModal from '../components/SetReminderModal';
 
 interface OnboardingScreenProps {
     onComplete: () => void;
@@ -33,6 +34,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
     const [name, setName] = useState('');
     const [selectedLanguage, setSelectedLanguage] = useState<Language>('en');
     const [showLanguages, setShowLanguages] = useState(false);
+    const [showReminderModal, setShowReminderModal] = useState(false);
 
     const handleContinue = async () => {
         if (name.trim()) {
@@ -42,8 +44,13 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                 language: selectedLanguage,
                 onboardingComplete: true,
             });
-            onComplete();
+            setShowReminderModal(true);
         }
+    };
+
+    const handleReminderClose = () => {
+        setShowReminderModal(false);
+        onComplete();
     };
 
     const selectedLangOption = LANGUAGES.find((l) => l.code === selectedLanguage);
@@ -155,6 +162,12 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                 onClose={() => setShowLanguages(false)}
                 selectedLanguage={selectedLanguage}
                 onSelectLanguage={setSelectedLanguage}
+            />
+
+            {/* Reminder Modal */}
+            <SetReminderModal
+                visible={showReminderModal}
+                onClose={handleReminderClose}
             />
         </ScreenBackground>
     );

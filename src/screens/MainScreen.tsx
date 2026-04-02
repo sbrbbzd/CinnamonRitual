@@ -142,7 +142,7 @@ export default function MainScreen({ onCheckIn }: MainScreenProps) {
                 <CheckInButton
                     onPress={handleCheckIn}
                     label={isCompleted ? t('main.ritualCompleted') : t('main.checkIn')}
-                    disabled={!isThursday() || isCompleted}
+                    disabled={isCompleted}
                 />
 
                 {/* Set Reminder Link */}

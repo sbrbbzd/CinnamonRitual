@@ -1,159 +1,203 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
-    TouchableOpacity,
     StyleSheet,
+    TouchableOpacity,
     Modal,
+    Switch,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
 import { scheduleReminders, cancelAllReminders } from '../services/notifications';
 import { colors } from '../theme/colors';
-import { fonts, spacing, borderRadius } from '../theme/fonts';
+import { spacing } from '../theme/fonts';
 
 interface SetReminderModalProps {
     visible: boolean;
     onClose: () => void;
 }
 
-type ReminderOption = 'morning' | 'afternoon' | 'evening' | 'all';
-
 export default function SetReminderModal({ visible, onClose }: SetReminderModalProps) {
     const { t } = useTranslation();
     const { reminderSettings, setReminderSettings } = useAppStore();
-    const [selectedOption, setSelectedOption] = useState<ReminderOption | null>(null);
 
-    const handleConfirm = async () => {
-        if (!selectedOption) return;
+    // Local state to hold changes before saving
+    const [localSettings, setLocalSettings] = useState({
+        morning: false,
+        afternoon: false,
+        evening: false,
+    });
 
+    // Initialize local settings when modal opens
+    useEffect(() => {
+        if (visible) {
+            setLocalSettings({
+                morning: reminderSettings.morning,
+                afternoon: reminderSettings.afternoon,
+                evening: reminderSettings.evening,
+            });
+        }
+    }, [visible, reminderSettings]);
+
+    const toggleReminder = (key: 'morning' | 'afternoon' | 'evening') => {
+        setLocalSettings(prev => ({
+            ...prev,
+            [key]: !prev[key],
+        }));
+    };
+
+    const handleSave = async () => {
         const newSettings = {
-            morning: selectedOption === 'morning' || selectedOption === 'all',
-            afternoon: selectedOption === 'afternoon' || selectedOption === 'all',
-            evening: selectedOption === 'evening' || selectedOption === 'all',
-            enabled: true,
+            ...reminderSettings,
+            ...localSettings,
+            enabled: true, // Always enabled if saving from this modal
         };
 
         await setReminderSettings(newSettings);
         await cancelAllReminders();
         await scheduleReminders(newSettings);
-
         onClose();
     };
 
-    const options: { key: ReminderOption; label: string }[] = [
+    const hasSelection = localSettings.morning || localSettings.afternoon || localSettings.evening;
+
+    const options = [
         { key: 'morning', label: t('reminder.morning') },
         { key: 'afternoon', label: t('reminder.afternoon') },
         { key: 'evening', label: t('reminder.evening') },
-        { key: 'all', label: t('reminder.allOfThem') },
-    ];
+    ] as const;
 
     return (
         <Modal
             visible={visible}
-            transparent
+            transparent={true}
             animationType="fade"
-            onRequestClose={onClose}
+            onRequestClose={() => { }}
         >
-            <View style={styles.overlay}>
-                <View style={styles.modalContainer}>
-                    <Text style={styles.title}>{t('reminder.title')}</Text>
-
-                    <View style={styles.divider} />
-
-                    {options.map((option) => (
-                        <TouchableOpacity
-                            key={option.key}
-                            style={[
-                                styles.option,
-                                selectedOption === option.key && styles.selectedOption,
-                            ]}
-                            onPress={() => setSelectedOption(option.key)}
-                        >
-                            <Text
-                                style={[
-                                    styles.optionText,
-                                    selectedOption === option.key && styles.selectedOptionText,
-                                ]}
+            <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+            >
+                {/* Stop propagation when clicking inside modal */}
+                <View
+                    style={styles.modalContent}
+                    onStartShouldSetResponder={() => true}
+                >
+                    <Text style={styles.modalTitle}>{t('reminder.title')}</Text>
+                    <View style={styles.optionsContainer}>
+                        {options.map((option) => (
+                            <View
+                                key={option.key}
+                                style={styles.optionRow}
                             >
-                                {option.label}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
+                                <Text style={styles.optionText}>
+                                    {option.label}
+                                </Text>
+                                <Switch
+                                    value={localSettings[option.key]}
+                                    onValueChange={() => toggleReminder(option.key)}
+                                    trackColor={{ false: colors.earthBeige + '40', true: colors.primaryGold }}
+                                    thumbColor={colors.earthBeige}
+                                    ios_backgroundColor={colors.earthBeige + '40'}
+                                />
+                            </View>
+                        ))}
+                    </View>
 
                     <TouchableOpacity
-                        style={[styles.confirmButton, !selectedOption && styles.disabledButton]}
-                        onPress={handleConfirm}
-                        disabled={!selectedOption}
+                        style={[
+                            styles.saveButton,
+                            !hasSelection && styles.saveButtonDisabled
+                        ]}
+                        onPress={handleSave}
+                        disabled={!hasSelection}
                     >
-                        <Text style={styles.confirmText}>{t('reminder.confirm')}</Text>
+                        <Text style={[
+                            styles.saveButtonText,
+                            !hasSelection && styles.saveButtonTextDisabled
+                        ]}>
+                            {t('common.save') || 'SAVE'}
+                        </Text>
                     </TouchableOpacity>
                 </View>
-            </View>
+            </TouchableOpacity>
         </Modal>
     );
 }
 
 const styles = StyleSheet.create({
-    overlay: {
+    modalOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        backgroundColor: 'rgba(0,0,0,0.8)',
         justifyContent: 'center',
         alignItems: 'center',
         padding: spacing.xl,
     },
-    modalContainer: {
-        backgroundColor: colors.modalBackground,
-        borderRadius: borderRadius.lg,
-        padding: spacing.xl,
+    modalContent: {
         width: '100%',
-        maxWidth: 400,
+        maxWidth: 340,
+        backgroundColor: colors.earthClay,
+        borderRadius: 20,
+        padding: spacing.xl,
+        borderWidth: 1,
+        borderColor: colors.primaryGold + '30',
+        alignItems: 'center',
     },
-    title: {
-        fontSize: fonts.sizes.lg,
-        color: colors.modalText,
+    modalTitle: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: colors.primaryGold,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+        marginBottom: spacing.lg,
         textAlign: 'center',
-        marginBottom: spacing.md,
-        fontWeight: fonts.weights.semibold,
+        width: '100%',
     },
-    divider: {
-        height: 2,
-        backgroundColor: colors.accent,
+    optionsContainer: {
+        width: '100%',
         marginBottom: spacing.lg,
     },
-    option: {
+    optionRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         paddingVertical: spacing.md,
-        paddingHorizontal: spacing.lg,
-        borderRadius: borderRadius.md,
-        borderWidth: 2,
-        borderColor: colors.accent,
-        marginBottom: spacing.md,
-        backgroundColor: 'transparent',
-    },
-    selectedOption: {
-        backgroundColor: colors.accent + '20',
+        borderBottomWidth: 1,
+        borderBottomColor: colors.primaryGold + '10',
     },
     optionText: {
-        fontSize: fonts.sizes.md,
-        color: colors.accent,
-        textAlign: 'center',
+        fontSize: 18,
+        color: colors.earthBeige,
+        opacity: 0.9,
     },
-    selectedOptionText: {
-        fontWeight: fonts.weights.semibold,
-    },
-    confirmButton: {
-        backgroundColor: colors.accent,
-        paddingVertical: spacing.md,
-        borderRadius: borderRadius.md,
+    saveButton: {
+        width: '100%',
+        backgroundColor: colors.secondaryRust,
+        paddingVertical: spacing.md, // ~16px
+        borderRadius: 9999, // Full pill shape
+        alignItems: 'center',
+        justifyContent: 'center',
         marginTop: spacing.md,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    disabledButton: {
-        opacity: 0.5,
+    saveButtonDisabled: {
+        backgroundColor: colors.earthBeige + '20',
+        shadowOpacity: 0,
+        elevation: 0,
     },
-    confirmText: {
-        fontSize: fonts.sizes.md,
-        color: colors.modalBackground,
-        textAlign: 'center',
-        fontWeight: fonts.weights.semibold,
+    saveButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: colors.earthBeige,
+        letterSpacing: 2,
+        textTransform: 'uppercase',
+    },
+    saveButtonTextDisabled: {
+        color: colors.earthBeige + '40',
     },
 });

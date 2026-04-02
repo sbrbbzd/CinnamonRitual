@@ -28,6 +28,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
+        "NOTIFICATIONS",
         "NOTIFICATIONS"
       ]
     },
@@ -47,6 +48,12 @@
       "eas": {
         "projectId": "ea628a42-56e5-4042-8238-7ef6df6328e6"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/ea628a42-56e5-4042-8238-7ef6df6328e6"
     }
   }
 }
